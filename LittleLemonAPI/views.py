@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from django.shortcuts import render
 from django.contrib.auth.models import User, Group
 from rest_framework.generics import ListCreateAPIView, DestroyAPIView
@@ -27,11 +28,17 @@ class MenuItemsView(ModelViewSet):
             queryset = queryset.filter(category__slug=category)
 
         return queryset
+
+class GroupsView(ListCreateAPIView, DestroyAPIView):
+    @abstractmethod
+    def __getgroupname__(self):
+        pass
     
-class ManagersView(ListCreateAPIView, DestroyAPIView):
-    queryset = User.objects.filter(groups__name='Manager')
     serializer_class = UserSerializer
     permission_classes = [IsManager,]
+
+    def get_queryset(self):
+        return User.objects.filter(groups__name=self.__getgroupname__())
 
     def create(self, request, *args, **kwargs):
         username = request.POST.get('username')
@@ -39,7 +46,7 @@ class ManagersView(ListCreateAPIView, DestroyAPIView):
             raise ParseError({'username':'Missing required parameter'})
         try:
             usr = User.objects.get(username=username)
-            grp = Group.objects.get(name='Manager')
+            grp = Group.objects.get(name=self.__getgroupname__())
             usr.groups.add(grp)
             return Response(status=HTTP_201_CREATED)
         except:
@@ -48,8 +55,16 @@ class ManagersView(ListCreateAPIView, DestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         try:
             usr = self.get_object()
-            grp = Group.objects.get(name='Manager')
+            grp = Group.objects.get(name=self.__getgroupname__())
             usr.groups.remove(grp)
             return Response(status=HTTP_204_NO_CONTENT)
         except:
             raise NotFound()
+        
+class ManagersView(GroupsView):
+    def __getgroupname__(self):
+        return 'Manager'
+
+class DeliveryCrewView(GroupsView):
+    def __getgroupname__(self):
+        return 'Delivery crew'
