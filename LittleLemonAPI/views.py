@@ -6,6 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import BasePermission, DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.exceptions import ParseError, NotFound
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from .models import MenuItem
 from .serializers import MenuItemSerializer, UserSerializer
@@ -14,11 +15,15 @@ class IsManager(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='Manager').exists()
 
+class MenuItemsPagination(PageNumberPagination):
+    page_size = 10
+
 # Create your views here.
 class MenuItemsView(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly,]
+    pagination_class = MenuItemsPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
