@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MenuItem
+from .models import MenuItem, Cart
 from django.contrib.auth.models import User
 
 class MenuItemSerializer(serializers.ModelSerializer):
@@ -11,3 +11,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta():
         model = User
         fields = ('id','username','email')
+
+class CartItemSerializer(serializers.ModelSerializer):
+    class Meta():
+        model = Cart
+        fields = ('menuitem','quantity','unit_price','price')
+        extra_kwargs = {
+            'quantity': {'min_value': 0},
+            'unit_price': {'read_only': True},
+            'price': {'read_only': True},
+        }

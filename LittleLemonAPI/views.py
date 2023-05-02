@@ -8,8 +8,8 @@ from rest_framework.exceptions import ParseError, NotFound
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
-from .models import MenuItem
-from .serializers import MenuItemSerializer, UserSerializer
+from .models import MenuItem, Cart
+from .serializers import MenuItemSerializer, UserSerializer, CartItemSerializer
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
@@ -73,3 +73,38 @@ class ManagersView(GroupsView):
 class DeliveryCrewView(GroupsView):
     def __getgroupname__(self):
         return 'Delivery crew'
+
+class CartView(ListCreateAPIView, DestroyAPIView):
+    serializer_class = CartItemSerializer
+    
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user.id)
+    
+    def perform_create(self, serializer):
+        """
+        Adds the item to the cart
+        If the item was already in the cart, updates the quantity and price
+        If the quantity is 0, deletes removes the item from the cart
+        """
+        menuitem = serializer.validated_data.get('menuitem')
+
+        # Delete any existing item for this user:menuitem (will be replaced)
+        existing = Cart.objects.filter(user=self.request.user, menuitem=menuitem).first()
+        if existing:
+            existing.delete()
+
+        # Only save if quantity is more than -0
+        quantity = serializer.validated_data.get('quantity')
+        if (quantity > 0):
+            return serializer.save(
+                user = self.request.user,
+                unit_price = menuitem.price,
+                price = menuitem.price * quantity,
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Deletes all cart items for the current user
+        """
+        Cart.objects.filter(user=self.request.user).delete()
+        return Response(status=HTTP_204_NO_CONTENT)
