@@ -36,3 +36,16 @@ class MenuItemsTest(APITestCase):
             response = self.client.get(LIST_URL + params)
             actual = [x.get('title') for x in response.data.get('results')]
             self.assertListEqual(actual, expected, f"with params: {params}")
+
+    def test_search(self):
+        cases = [
+            ('',['chips','pasta','icecream']),
+            ('?search=chips',['chips']),
+            ('?search=cream',['icecream']),
+            ('?search=a',['icecream','pasta']),
+        ]
+
+        for i, (params,expected) in enumerate(cases):
+            response = self.client.get(LIST_URL + params)
+            actual = [x.get('title') for x in response.data.get('results')]
+            self.assertSetEqual(set(actual), set(expected), f"with params: {params}")

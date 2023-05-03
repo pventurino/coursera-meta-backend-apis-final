@@ -34,9 +34,13 @@ class MenuItemsView(ModelViewSet):
         queryset = super().get_queryset()
         
         category = self.request.query_params.get('category')
+        search = self.request.query_params.get('search')
         ordering = self.request.query_params.get('sort')
+
         if category:
             queryset = queryset.filter(category__slug=category)
+        if search:
+            queryset = queryset.filter(title__icontains=search)
         if ordering:
             ordering_fields = ordering.split(',')
             queryset = queryset.order_by(*ordering_fields)
