@@ -121,6 +121,9 @@ class OrdersTest(APITestCase):
         serializer = OrderSerializer(Order.objects.get(id=order2.id))
         self.assertEqual(response.data, serializer.data)
 
+        response = self.client.get(DETAIL_URL(99))
+        self.assertEqual(response.status_code, HTTP_404_NOT_FOUND)
+
     def test_manager_update(self):
         """
         Updates a single order (sets delivery crew)
