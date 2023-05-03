@@ -113,9 +113,20 @@ class CartView(ListCreateAPIView, DestroyAPIView):
         Cart.objects.filter(user=self.request.user).delete()
         return Response(status=HTTP_204_NO_CONTENT)
 
-class OrdersView(ListCreateAPIView, RetrieveUpdateAPIView):
+class OrdersView(ListCreateAPIView):
     serializer_class = OrderSerializer
 
+    def get_queryset(self):
+        if self.request.user.groups.filter(name='Manager').exists():
+            return Order.objects.all()
+        elif self.request.user.groups.filter(name='Delivery Crew').exists():
+            return Order.objects.filter(delivery_crew=self.request.user)
+        else:
+            return Order.objects.filter(user=self.request.user)
+    
+class SingleOrderView(RetrieveUpdateAPIView):
+    serializer_class = OrderSerializer
+    
     def get_queryset(self):
         if self.request.user.groups.filter(name='Manager').exists():
             return Order.objects.all()

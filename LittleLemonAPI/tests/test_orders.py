@@ -1,10 +1,19 @@
+from django.urls import reverse
 from rest_framework.test import APITestCase
 from django.contrib.auth.models import User, Group
 from ..models import Category, MenuItem, Cart, Order, OrderItem
 from ..serializers import OrderSerializer
 from datetime import date
 
-URL = '/api/orders'
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_201_CREATED,
+    HTTP_204_NO_CONTENT,
+    HTTP_404_NOT_FOUND
+    )
+
+LIST_URL = reverse('orders_list')
+def DETAIL_URL(pk): return reverse('orders_detail', kwargs={'pk':pk})
 
 class OrdersTest(APITestCase):
 
@@ -56,10 +65,10 @@ class OrdersTest(APITestCase):
         self._createOrder(user=self.customer2)
 
         self.client.force_authenticate(user=self.customer)
-        response = self.client.get(URL)
+        response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.filter(user=self.customer), many=True)
         self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_customer_create(self):
         """
@@ -71,7 +80,16 @@ class OrdersTest(APITestCase):
         """
         Retrieves a single order if it belongs to this customer
         """
-        pass
+        order1 = self._createOrder(user=self.customer)
+        order2 = self._createOrder(user=self.customer2)
+
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get(DETAIL_URL(order1.id))
+        serializer = OrderSerializer(Order.objects.get(id=order1.id))
+        self.assertEqual(response.data, serializer.data)
+
+        response = self.client.get(DETAIL_URL(order2.id))
+        self.assertEqual(response.status_code, HTTP_404_NOT_FOUND)
 
     def test_manager_list(self):
         """
@@ -82,16 +100,26 @@ class OrdersTest(APITestCase):
         self._createOrder(user=self.customer2)
 
         self.client.force_authenticate(user=self.manager)
-        response = self.client.get(URL)
+        response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.all(), many=True)
         self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_manager_retrieve(self):
         """
         Retrieves a single order
         """
-        pass
+        order1 = self._createOrder(user=self.customer)
+        order2 = self._createOrder(user=self.customer2)
+
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.get(DETAIL_URL(order1.id))
+        serializer = OrderSerializer(Order.objects.get(id=order1.id))
+        self.assertEqual(response.data, serializer.data)
+
+        response = self.client.get(DETAIL_URL(order2.id))
+        serializer = OrderSerializer(Order.objects.get(id=order2.id))
+        self.assertEqual(response.data, serializer.data)
 
     def test_manager_update(self):
         """
@@ -114,16 +142,25 @@ class OrdersTest(APITestCase):
         self._createOrder(user=self.customer, delivery_crew=self.delivery2)
 
         self.client.force_authenticate(user=self.delivery)
-        response = self.client.get(URL)
+        response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.filter(delivery_crew=self.delivery), many=True)
         self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_delivery_retrieve(self):
         """
         Retrieves an order if it belongs to this delivery member
         """
-        pass
+        order1 = self._createOrder(user=self.customer, delivery_crew=self.delivery)
+        order2 = self._createOrder(user=self.customer2, delivery_crew=self.delivery2)
+
+        self.client.force_authenticate(user=self.delivery)
+        response = self.client.get(DETAIL_URL(order1.id))
+        serializer = OrderSerializer(Order.objects.get(id=order1.id))
+        self.assertEqual(response.data, serializer.data)
+
+        response = self.client.get(DETAIL_URL(order2.id))
+        self.assertEqual(response.status_code, HTTP_404_NOT_FOUND)
 
     def test_delivery_update(self):
         """
