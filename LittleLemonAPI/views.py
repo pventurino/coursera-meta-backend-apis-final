@@ -1,19 +1,23 @@
 from abc import abstractmethod
 from django.shortcuts import render
 from django.contrib.auth.models import User, Group
-from rest_framework.generics import ListCreateAPIView, DestroyAPIView
+from rest_framework.generics import ListCreateAPIView, DestroyAPIView, RetrieveUpdateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import BasePermission, DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.exceptions import ParseError, NotFound
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
-from .models import MenuItem, Cart
-from .serializers import MenuItemSerializer, UserSerializer, CartItemSerializer
+from .models import MenuItem, Cart, Order
+from .serializers import MenuItemSerializer, UserSerializer, CartItemSerializer, OrderSerializer
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='Manager').exists()
+
+class IsDelivery(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='Delivery Crew').exists()
 
 class MenuItemsPagination(PageNumberPagination):
     page_size = 10
@@ -108,3 +112,14 @@ class CartView(ListCreateAPIView, DestroyAPIView):
         """
         Cart.objects.filter(user=self.request.user).delete()
         return Response(status=HTTP_204_NO_CONTENT)
+
+class OrdersView(ListCreateAPIView, RetrieveUpdateAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        if self.request.user.groups.filter(name='Manager').exists():
+            return Order.objects.all()
+        elif self.request.user.groups.filter(name='Delivery Crew').exists():
+            return Order.objects.filter(delivery_crew=self.request.user)
+        else:
+            return Order.objects.filter(user=self.request.user)

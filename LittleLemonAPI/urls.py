@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import MenuItemsView, ManagersView, DeliveryCrewView, CartView
+from .views import MenuItemsView, ManagersView, DeliveryCrewView, CartView, OrdersView
 
 list = {
     'get':'list',
@@ -20,4 +20,6 @@ urlpatterns = [
     path('groups/delivery-crew/users', DeliveryCrewView.as_view()),
     path('groups/delivery-crew/users/<int:pk>', DeliveryCrewView.as_view()),
     path('cart/menu-items', CartView.as_view()),
+    path('orders', OrdersView.as_view()),
+    path('orders/<int:pk>', OrdersView.as_view()),
 ]
