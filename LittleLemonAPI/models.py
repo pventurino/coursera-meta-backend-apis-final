@@ -22,6 +22,9 @@ class MenuItem(models.Model):
     featured = models.BooleanField(default=False, db_index=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
 
+    class Meta():
+        ordering = ['id']
+
     def __str__(self):
         return self.title
     

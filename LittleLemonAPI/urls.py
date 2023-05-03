@@ -13,7 +13,7 @@ detail = {
     }
 
 urlpatterns = [
-    path('menu-items', MenuItemsView.as_view(list)),
+    path('menu-items', MenuItemsView.as_view(list), name='menuitems_list'),
     path('menu-items/<int:pk>', MenuItemsView.as_view(detail)),
     path('groups/manager/users', ManagersView.as_view()),
     path('groups/manager/users/<int:pk>', ManagersView.as_view()),
