@@ -123,12 +123,21 @@ class OrdersView(ListCreateAPIView):
     pagination_class = ListPagination
 
     def get_queryset(self):
-        if self.request.user.groups.filter(name='Manager').exists():
-            return Order.objects.all()
-        elif self.request.user.groups.filter(name='Delivery Crew').exists():
-            return Order.objects.filter(delivery_crew=self.request.user)
+        groups = self.request.user.groups
+
+        if groups.filter(name='Manager').exists():
+            queryset = Order.objects.all()
+        elif groups.filter(name='Delivery Crew').exists():
+            queryset = Order.objects.filter(delivery_crew=self.request.user)
         else:
-            return Order.objects.filter(user=self.request.user)
+            queryset = Order.objects.filter(user=self.request.user)
+
+        ordering = self.request.query_params.get('sort')
+        if ordering:
+            ordering_fields = ordering.split(',')
+            queryset = queryset.order_by(*ordering_fields)
+        
+        return queryset
 
     def create(self, request, *args, **kwargs):
         cart = Cart.objects.filter(user=self.request.user)

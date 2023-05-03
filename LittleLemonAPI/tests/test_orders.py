@@ -136,6 +136,28 @@ class OrdersTest(APITestCase):
         self.assertEqual(response.data.get('results'), serializer.data)
         self.assertEqual(response.status_code, HTTP_200_OK)
 
+    def test_manager_list_sorting(self):
+        orders = [Order(user=u, total=t, date=d) for (u,t,d) in [
+            (self.customer, 50.0, date.fromordinal(100)),
+            (self.customer, 10.0, date.fromordinal(200)),
+            (self.customer, 30.0, date.fromordinal(300)),
+        ]]
+        Order.objects.bulk_create(orders)
+
+        cases = [
+            ('', [1,2,3]),
+            ('?sort=total', [2,3,1]),
+            ('?sort=-total', [1,3,2]),
+            ('?sort=-date', [3,2,1]),
+        ]
+
+        self.client.force_authenticate(user=self.manager)
+        for i, (params,expected) in enumerate(cases):
+            response = self.client.get(LIST_URL + params)
+            actual = [x.get('id') for x in response.data.get('results')]
+            self.assertListEqual(actual, expected, f"with params: {params}")
+
+
     def test_manager_retrieve(self):
         """
         Retrieves a single order
