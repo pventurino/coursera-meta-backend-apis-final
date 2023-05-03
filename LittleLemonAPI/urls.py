@@ -19,7 +19,7 @@ urlpatterns = [
     path('groups/manager/users/<int:pk>', ManagersView.as_view()),
     path('groups/delivery-crew/users', DeliveryCrewView.as_view()),
     path('groups/delivery-crew/users/<int:pk>', DeliveryCrewView.as_view()),
-    path('cart/menu-items', CartView.as_view()),
+    path('cart/menu-items', CartView.as_view(), name='cart'),
     path('orders', OrdersView.as_view(), name='orders_list'),
     path('orders/<int:pk>', SingleOrderView.as_view(), name='orders_detail'),
 ]

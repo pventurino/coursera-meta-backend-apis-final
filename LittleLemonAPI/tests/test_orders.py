@@ -74,7 +74,38 @@ class OrdersTest(APITestCase):
         """
         Creates a new order with the contents of the cart
         """
-        pass
+        self.client.force_authenticate(user=self.customer)
+        try:
+            cart_url = reverse('cart')
+            self.client.post(cart_url, {'menuitem':1, 'quantity':2})
+            self.client.post(cart_url, {'menuitem':2, 'quantity':2})
+            self.assertEqual(Cart.objects.count(), 2)
+            self.assertEqual(Order.objects.count(), 0)
+        except:
+            raise NotImplementedError('Precondition failed: /cart/menu-items not working as expected')
+
+        response = self.client.post(LIST_URL)
+        order = Order.objects.last()
+        serializer = OrderSerializer(order)
+        self.assertEqual(response.data, serializer.data, 'response.data')
+        self.assertEqual(response.status_code, HTTP_201_CREATED, 'response.status_code')
+
+        self.assertEqual(OrderItem.objects.count(), 2, 'Did not create order item records')
+        self.assertEqual(Cart.objects.count(), 0, 'Did not delete cart records')
+
+        self.assertEqual(order.total, 10.0, 'order.total')
+        self.assertEqual(order.delivery_crew, None, 'order.delivery_crew')
+        self.assertEqual(order.status, 0, 'order.status')
+        self.assertEqual(order.date, date.today(), 'order.date')
+
+    def test_customer_create_empty(self):
+        """
+        If the customer attempts to create a new order with an empty cart, return 404
+        """
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.post(LIST_URL)
+        self.assertEqual(response.status_code, HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data, {'detail':'cart is empty'})
 
     def test_customer_retrieve(self):
         """

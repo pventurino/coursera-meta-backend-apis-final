@@ -8,8 +8,9 @@ from rest_framework.exceptions import ParseError, NotFound
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
-from .models import MenuItem, Cart, Order
+from .models import MenuItem, Cart, Order, OrderItem
 from .serializers import MenuItemSerializer, UserSerializer, CartItemSerializer, OrderSerializer
+from datetime import date
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
@@ -123,7 +124,42 @@ class OrdersView(ListCreateAPIView):
             return Order.objects.filter(delivery_crew=self.request.user)
         else:
             return Order.objects.filter(user=self.request.user)
-    
+
+    def create(self, request, *args, **kwargs):
+        cart = Cart.objects.filter(user=self.request.user)
+        if len(cart) == 0:
+            raise NotFound('cart is empty')
+
+        # Calculate the total, to create the order
+        total = 0
+        for item in cart:
+            total += item.price
+
+        # Create the order
+        order = Order.objects.create(
+            user=self.request.user,
+            total=total,
+            date=date.today()
+        )
+
+        # Create the order items
+        items = []
+        for item in cart:
+            items.append(OrderItem(
+                order=order,
+                menuitem=item.menuitem,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                price=item.price
+            ))
+        OrderItem.objects.bulk_create(items)
+
+        # Empty the cart
+        cart.delete()
+
+        serializer = OrderSerializer(Order.objects.get(id=order.id))
+        return Response(serializer.data, HTTP_201_CREATED)
+
 class SingleOrderView(RetrieveUpdateAPIView):
     serializer_class = OrderSerializer
     
