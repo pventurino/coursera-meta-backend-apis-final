@@ -165,7 +165,14 @@ class OrdersTest(APITestCase):
         """
         PATCH and PUT are not authorized
         """
-        pass
+        order = self._createOrder(user=self.customer)
+        self.client.force_authenticate(user=self.customer)
+
+        response = self.client.put(DETAIL_URL(order.id))
+        self.assertEqual(response.status_code, HTTP_403_FORBIDDEN, 'put')
+
+        response = self.client.patch(DETAIL_URL(order.id))
+        self.assertEqual(response.status_code, HTTP_403_FORBIDDEN, 'patch')
 
     def test_delivery_list(self):
         """

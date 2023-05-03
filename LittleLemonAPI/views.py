@@ -170,3 +170,8 @@ class SingleOrderView(RetrieveUpdateAPIView):
             return Order.objects.filter(delivery_crew=self.request.user)
         else:
             return Order.objects.filter(user=self.request.user)
+
+    def get_permissions(self):
+        if ['PUT','PATCH'].__contains__(self.request.method):
+            return [IsManager(), IsDelivery()]
+        return super().get_permissions()
