@@ -8,8 +8,8 @@ from datetime import date
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
-    HTTP_204_NO_CONTENT,
-    HTTP_404_NOT_FOUND
+    HTTP_403_FORBIDDEN,
+    HTTP_404_NOT_FOUND,
     )
 
 LIST_URL = reverse('orders_list')
@@ -159,7 +159,16 @@ class OrdersTest(APITestCase):
         """
         Updates a single order (sets delivery crew)
         """
-        pass
+        order = self._createOrder(user=self.customer)
+        self.client.force_authenticate(user=self.manager)
+
+        response = self.client.put(DETAIL_URL(order.id))
+        self.assertEqual(response.status_code, HTTP_403_FORBIDDEN, 'put')
+
+        response = self.client.patch(DETAIL_URL(order.id), {'delivery_crew':self.delivery.id})
+        self.assertEqual(response.status_code, HTTP_200_OK, 'patch')
+        db_order = Order.objects.get(id=order.id)
+        self.assertEqual(db_order.delivery_crew, self.delivery)
 
     def test_customer_update(self):
         """
@@ -207,4 +216,19 @@ class OrdersTest(APITestCase):
         """
         Updates a single order (sets status)
         """
-        pass
+        order = self._createOrder(user=self.customer, delivery_crew=self.delivery)
+        self.client.force_authenticate(user=self.delivery)
+
+        response = self.client.put(DETAIL_URL(order.id))
+        self.assertEqual(response.status_code, HTTP_403_FORBIDDEN, 'put')
+
+        response = self.client.patch(DETAIL_URL(order.id), {'status':1})
+        self.assertEqual(response.status_code, HTTP_200_OK, 'patch:status')
+        db_order = Order.objects.get(id=order.id)
+        self.assertEqual(db_order.status, True, 'db_order.status')
+
+        # Should not be able to update delivery_crew
+        response = self.client.patch(DETAIL_URL(order.id), {'delivery_crew':self.delivery2.id})
+        self.assertEqual(response.status_code, HTTP_403_FORBIDDEN, 'patch:delivery_crew')
+        db_order = Order.objects.get(id=order.id)
+        self.assertEqual(db_order.delivery_crew, self.delivery, 'db_order.delivery_crew')

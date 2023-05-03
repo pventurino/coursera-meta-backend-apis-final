@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group
 from rest_framework.generics import ListCreateAPIView, DestroyAPIView, RetrieveUpdateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import BasePermission, DjangoModelPermissionsOrAnonReadOnly
-from rest_framework.exceptions import ParseError, NotFound
+from rest_framework.exceptions import ParseError, NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
@@ -173,5 +173,31 @@ class SingleOrderView(RetrieveUpdateAPIView):
 
     def get_permissions(self):
         if ['PUT','PATCH'].__contains__(self.request.method):
-            return [IsManager(), IsDelivery()]
+            # print(f"permissions: Groups? {self.request.user.groups.all()}")
+            return [(IsManager | IsDelivery)()]
         return super().get_permissions()
+
+    def put(self, request, *args, **kwargs):
+        # Should use only partial_update
+        raise PermissionDenied()
+
+    def perform_update(self, serializer):
+        groups = self.request.user.groups
+        allow=set()
+        if groups.filter(name='Manager').exists():
+            allow=set(['delivery_crew','status'])
+        elif groups.filter(name='Delivery Crew').exists():
+            allow=set(['status'])
+        
+        keys = set(serializer.validated_data.keys())
+        # print(f"keys: {keys}")
+        forbidden = keys.difference(allow)
+        # print(f"forbidden: {forbidden} {len(forbidden)}")
+
+        if len(forbidden) > 0:
+            data = {}
+            for key in forbidden:
+                data[key] = 'You do not have permission to modify this field'
+            raise PermissionDenied(data)
+
+        return super().perform_update(serializer)

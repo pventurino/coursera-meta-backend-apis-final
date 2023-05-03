@@ -32,3 +32,8 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta():
         model = Order
         fields = ('__all__')
+        extra_kwargs = {
+            'user': {'read_only': True},
+            'total': {'read_only': True},
+            'date': {'read_only': True},
+        }
