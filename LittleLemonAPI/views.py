@@ -20,7 +20,7 @@ class IsDelivery(BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='Delivery Crew').exists()
 
-class MenuItemsPagination(PageNumberPagination):
+class ListPagination(PageNumberPagination):
     page_size = 10
 
 # Create your views here.
@@ -28,7 +28,7 @@ class MenuItemsView(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly,]
-    pagination_class = MenuItemsPagination
+    pagination_class = ListPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -116,6 +116,7 @@ class CartView(ListCreateAPIView, DestroyAPIView):
 
 class OrdersView(ListCreateAPIView):
     serializer_class = OrderSerializer
+    pagination_class = ListPagination
 
     def get_queryset(self):
         if self.request.user.groups.filter(name='Manager').exists():
@@ -173,7 +174,6 @@ class SingleOrderView(RetrieveUpdateAPIView):
 
     def get_permissions(self):
         if ['PUT','PATCH'].__contains__(self.request.method):
-            # print(f"permissions: Groups? {self.request.user.groups.all()}")
             return [(IsManager | IsDelivery)()]
         return super().get_permissions()
 
@@ -190,9 +190,7 @@ class SingleOrderView(RetrieveUpdateAPIView):
             allow=set(['status'])
         
         keys = set(serializer.validated_data.keys())
-        # print(f"keys: {keys}")
         forbidden = keys.difference(allow)
-        # print(f"forbidden: {forbidden} {len(forbidden)}")
 
         if len(forbidden) > 0:
             data = {}

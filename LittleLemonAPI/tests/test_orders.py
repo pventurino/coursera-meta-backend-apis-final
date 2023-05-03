@@ -67,7 +67,7 @@ class OrdersTest(APITestCase):
         self.client.force_authenticate(user=self.customer)
         response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.filter(user=self.customer), many=True)
-        self.assertEqual(response.data, serializer.data)
+        self.assertEqual(response.data.get('results'), serializer.data)
         self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_customer_create(self):
@@ -133,7 +133,7 @@ class OrdersTest(APITestCase):
         self.client.force_authenticate(user=self.manager)
         response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.all(), many=True)
-        self.assertEqual(response.data, serializer.data)
+        self.assertEqual(response.data.get('results'), serializer.data)
         self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_manager_retrieve(self):
@@ -194,7 +194,7 @@ class OrdersTest(APITestCase):
         self.client.force_authenticate(user=self.delivery)
         response = self.client.get(LIST_URL)
         serializer = OrderSerializer(Order.objects.filter(delivery_crew=self.delivery), many=True)
-        self.assertEqual(response.data, serializer.data)
+        self.assertEqual(response.data.get('results'), serializer.data)
         self.assertEqual(response.status_code, HTTP_200_OK)
 
     def test_delivery_retrieve(self):
